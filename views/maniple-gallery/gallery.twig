@@ -232,7 +232,7 @@ var Gallery = (function () {
 
         $.ajax({
             type: 'get',
-            url:  this._urlTemplate.replace(/:offset/g, offset).replace(/:limit/g, limit),
+            url:  this._urlTemplate.replace(/:offset/g, offset).replace(/:limit/g, limit).replace(/:dir_id/g, {{ gallery_dir_id }}),
             success: function (response) {
                 if (!(response instanceof Array)) {
                     self.debug('Server response is not an array');
@@ -304,6 +304,6 @@ var Gallery = (function () {
 })();
 
 $(function () {
-    window.gallery = new Gallery('#gallery', '#gallery-view', '{{ urlTemplate('main.gallery.images') }}');
+    window.gallery = new Gallery('#gallery', '#gallery-view', '{{ urlTemplate('gallery.images') }}');
 });
 </script>
