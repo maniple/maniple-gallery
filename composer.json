@@ -13,6 +13,9 @@
         "maniple/maniple": "*"
     },
     "autoload": {
+        "classmap": [
+            "Bootstrap.php"
+        ],
         "psr-0": {
             "ManipleGallery_": "library/"
         }
