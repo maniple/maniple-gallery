@@ -1,0 +1,309 @@
+{% headLink().appendStylesheet(moduleAsset('css/drive.css', 'maniple-drive')) %}
+<h2 class="page-title">Galeria zdjęć</h2>
+
+<noscript>
+    <div class="alert alert-danger">
+        <p>
+        Galeria do działania wymaga włączonej obsługi języka JavaScript
+        w przeglądarce.
+        </p>
+    </div>
+</noscript>
+
+<div id="gallery" class="gallery">
+    <div data-role="view-container">
+        <p class="text-center" style="padding:30px 0;">Wczytywanie zdjęć, proszę czekać...</p>
+    </div>
+</div>
+<script id="gallery-view" type="text/html">
+    <div class="gallery-images clearfix" data-role="images-container">
+    </div>
+    <div class="text-center">
+        <button type="button" class="btn btn-primary btn-lg btn-block has-loading-icon" data-role="load-button">
+            <i class="loading-icon"></i>
+            <span class="message">Więcej zdjęć</span>
+        </button>
+    </div>
+</script>
+<script>
+var Gallery = (function () {
+    if(0){return function(){}}
+
+    /**
+     * Are media queries suppported by this browser?
+     * @returns {boolean}
+     */
+    var mediaQueriesSupported = (function () {
+        // detect media query support
+        var zIndex = Math.round(Math.random() * 65535),
+            style = $('<style>@media all and (min-width:0){.mediaquery-check{position:absolute;z-index:'+zIndex+'}}</style>'),
+            elem = $('<div class="mediaquery-check"/>'),
+            result;
+
+        $('head').append(style);
+        $('body').append(elem);
+
+        result = elem.css('zIndex') == zIndex;
+
+        style.remove();
+        elem.remove();
+
+        return result;
+    })();
+
+    /**
+     * Maniple-Drive based gallery.
+     * @constructor
+     * @param {string|jQuery|element} selector
+     * @param {string|jQuery|element} viewTemplate
+     * @param {string} urlTemplate
+     */
+    function Gallery(selector, viewTemplate, urlTemplate) {
+        var self = this;
+        require(['{{ drive().jsLib() }}'], function (Drive) {
+            self.Lightbox = Drive.Lightbox
+            self._init(selector, viewTemplate, urlTemplate);
+        });
+    }
+
+    Gallery.prototype._init = function (selector, viewTemplate, urlTemplate) {
+        var self = this;
+
+        this._debug = false;
+        this._element = $(selector).addClass('gallery');
+
+        this._imageCount = 0;
+        this._loadingImages = [];
+
+        this._urlTemplate = String(urlTemplate);
+        this._viewTemplate = viewTemplate;
+
+        this._offset = 0;
+        this._requiredOffset = -1;
+
+        // set required offset based on a location hash value
+        var hash = String(document.location.hash).replace(/#/, '');
+
+        if (hash.match(/^\d+$/)) {
+            this._requiredOffset = parseInt(hash, 10);
+            this.debug('Required offset set to: ' + this._requiredOffset);
+        }
+
+        this.loadImages();
+    };
+
+    // view is initialized with first AJAX response
+    Gallery.prototype._initView = function () {
+        var self = this;
+
+        if (self._viewInitialized) {
+            return;
+        }
+
+        self._viewContainer = self._element.find('[data-role="view-container"]');
+        self._viewContainer.empty().append($(self._viewTemplate).html());
+
+        self._imagesContainer = self._viewContainer.find('[data-role="images-container"]');
+        self._lightbox = new this.Lightbox(self._imagesContainer);
+
+        self._loadButton = self._viewContainer.find('[data-role="load-button"]');
+        self._loadButton.click(function () {
+            self.loadImages();
+        });
+
+        self._viewInitialized = true;
+    };
+
+    Gallery.prototype._loadingWatchdog = function () {
+        var self = this;
+        var completeCount = 0;
+
+        self._loadingImages.forEach(function (image) {
+            var url, uniq;
+
+            if (image.loaded) {
+                if (!image.error) {
+                    ++completeCount;
+                } else if (image.numTries < 3) {
+                    ++image.numTries;
+                    image.loaded = false;
+
+                    url = String(image.src);
+                    uniq = String(Math.random()).substr(2);
+
+                    if (/[&?]uniq=\d+/.test(url)) {
+                        url = url.replace(/([&?]uniq=)(\d+)/g, function (m0, m1) {
+                            return m1 + uniq;
+                        });
+                    } else if (url.indexOf('?') === -1) {
+                        url += '?uniq=' + uniq;
+                    } else {
+                        url += '&uniq=' + uniq;
+                    }
+
+                    image.src = url;
+                    self.debug('Reloading image: ' + url);
+                }
+            }
+        });
+
+        if (completeCount === self._loadingImages.length) {
+            self.debug('Loading complete: ' + completeCount + ' image(s)');
+            self._loadingComplete();
+        }
+    };
+
+    Gallery.prototype._loadingComplete = function () {
+        var self = this,
+            title = document.title;
+
+        self._setLoading(false);
+        self._loadingImages.length = 0;
+
+        clearInterval(self._watchdogInterval);
+        self._watchdogInterval = null;
+
+        if (self._requiredOffset > 0) {
+            if (self._offset < self._requiredOffset) {
+                self.loadImages();
+            } else {
+                // update offset to a bigger one
+                document.location.href = String(document.location.href).replace(/#.*$/, '') + '#' + self._offset;
+            }
+        } else {
+            document.location.href = String(document.location.href).replace(/#.*$/, '') + '#' + self._offset;
+        }
+
+        document.title = title; // needed by IE8
+    };
+
+    Gallery.prototype._setLoading = function (flag) {
+        var self = this;
+        self._loading = !!flag;
+
+        if (self._loadButton) {
+            if (self._loading) {
+                self._loadButton.addClass('disabled loading').find('.message').text('Wczytuję...');
+            } else {
+                self._loadButton.removeClass('disabled loading').find('.message').text('Więcej zdjęć...');
+            }
+        }
+    };
+
+    Gallery.prototype.loadImages = function () {
+        var self = this;
+
+        if (self._loading) {
+            self.debug('Please wait, loading images in progress');
+            return false;
+        }
+
+        self._setLoading(true);
+
+        var offset = this._offset;
+
+        // limit depends on window width, try to fetch 25 images at most,
+        // which, in the widest mode is 3 rows of 7 images + 4 images
+        var nImages;
+
+        if (!mediaQueriesSupported) {
+            nImages = 4;
+        } else {
+            var w = $(window).width();
+            if (w < 520) {
+                nImages = 4;
+            } else if (w < 640) {
+                nImages = 5;
+            } else if (w < 760) {
+                nImages = 6;
+            } else {
+                nImages = 7;
+            }
+        }
+
+        var maxImages = 35;
+
+        var total = this._imageCount + maxImages;
+        var limit = maxImages +
+                    // download to fill whole row
+                    (Math.ceil(total/nImages) * nImages - total);
+
+        self.debug('Downloading ' + limit + ' image(s), number of images in a row: ' + nImages);
+
+        $.ajax({
+            type: 'get',
+            url:  this._urlTemplate.replace(/:offset/g, offset).replace(/:limit/g, limit),
+            success: function (response) {
+                if (!(response instanceof Array)) {
+                    self.debug('Server response is not an array');
+                    return;
+                }
+
+                self._initView();
+                self._setLoading(true);
+
+                if (response.length < limit) {
+                    self.debug('No more images to load');
+                    self._requiredOffset = -1;
+                    self._loadButton.remove();
+                    return;
+                }
+
+                response.forEach(function (file, index) {
+                    var url = '{{ urlTemplate('drive.file.thumb', {dims: '120x120'}) }}'.replace(/:file_id/g, file.file_id);
+                    var image = $('<img class="gallery-image-thumb" />');
+                    var pixel = $('<img class="pixel" src="{{ baseUrl('/assets/main/img/blank.gif') }}" />');
+                    var el = $('<div class="gallery-image loading"/>').appendTo(self._imagesContainer);
+
+                    el.append(image);
+                    el.append(pixel);
+
+                    image.wrap('<a href="' + '{{ urlTemplate('drive.file.thumb', {dims:''}) }}'.replace(/:file_id/g, file.file_id) + '" />');
+                    image.parent().attr('title', file.title || file.name);
+                    image.parent().attr('data-caption', file.description);
+
+                    image.each(function () {
+                        this.onload = function () {
+                            this.loaded = true;
+                            this.error = false;
+                            ++self._imageCount;
+                            self.debug('Loaded: ' + this.src);
+                        };
+                        this.onerror = function () {
+                            this.loaded = true;
+                            this.error = true;
+                            self.debug('Load error (' + this.numTries + '): '+ this.src);
+                        };
+                        this.numTries = 0;
+                        this.src = url;
+
+                        self._loadingImages.push(this);
+                    });
+                });
+
+                self._offset += response.length;
+                self._watchdogInterval = setInterval(function () {
+                    self._loadingWatchdog();
+                }, 250);
+            },
+            error: function (response) {
+                console.log(response);
+                this._loading = false;
+            }
+        });
+
+    };
+
+    Gallery.prototype.debug = function (message) {
+        if (this._debug) {
+            window.console && console.log('[Gallery] ' + message);
+        }
+    };
+
+    return Gallery;
+})();
+
+$(function () {
+    window.gallery = new Gallery('#gallery', '#gallery-view', '{{ urlTemplate('main.gallery.images') }}');
+});
+</script>

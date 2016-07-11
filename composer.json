@@ -1,0 +1,20 @@
+{
+    "name": "maniple/maniple-gallery",
+    "description": "Gallery module for maniple",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "xemlock",
+            "email": "xemlock@gmail.com"
+        }
+    ],
+    "require": {
+        "maniple/maniple": "*"
+    },
+    "autoload": {
+        "psr-0": {
+            "ManipleGallery_": "library/"
+        }
+    }
+}
