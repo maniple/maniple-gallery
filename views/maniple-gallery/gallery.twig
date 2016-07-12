@@ -1,18 +1,16 @@
 {% headLink().appendStylesheet(moduleAsset('css/drive.css', 'maniple-drive')) %}
-<h2 class="page-title">Galeria zdjęć</h2>
 
 <noscript>
     <div class="alert alert-danger">
         <p>
-        Galeria do działania wymaga włączonej obsługi języka JavaScript
-        w przeglądarce.
+        Gallery requires that JavaScript is enabled in browser.
         </p>
     </div>
 </noscript>
 
 <div id="gallery" class="gallery">
     <div data-role="view-container">
-        <p class="text-center" style="padding:30px 0;">Wczytywanie zdjęć, proszę czekać...</p>
+        <p class="text-center" style="padding:30px 0;">Loading pictures, please wait...</p>
     </div>
 </div>
 <script id="gallery-view" type="text/html">
@@ -21,7 +19,7 @@
     <div class="text-center">
         <button type="button" class="btn btn-primary btn-lg btn-block has-loading-icon" data-role="load-button">
             <i class="loading-icon"></i>
-            <span class="message">Więcej zdjęć</span>
+            <span class="message">More pictures</span>
         </button>
     </div>
 </script>
@@ -69,7 +67,7 @@ var Gallery = (function () {
     Gallery.prototype._init = function (selector, viewTemplate, urlTemplate) {
         var self = this;
 
-        this._debug = false;
+        this._debug = true;
         this._element = $(selector).addClass('gallery');
 
         this._imageCount = 0;
@@ -242,17 +240,10 @@ var Gallery = (function () {
                 self._initView();
                 self._setLoading(true);
 
-                if (response.length < limit) {
-                    self.debug('No more images to load');
-                    self._requiredOffset = -1;
-                    self._loadButton.remove();
-                    return;
-                }
-
                 response.forEach(function (file, index) {
                     var url = '{{ urlTemplate('drive.file.thumb', {dims: '120x120'}) }}'.replace(/:file_id/g, file.file_id);
                     var image = $('<img class="gallery-image-thumb" />');
-                    var pixel = $('<img class="pixel" src="{{ baseUrl('/assets/main/img/blank.gif') }}" />');
+                    var pixel = $('<img class="pixel" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" />');
                     var el = $('<div class="gallery-image loading"/>').appendTo(self._imagesContainer);
 
                     el.append(image);
@@ -280,6 +271,14 @@ var Gallery = (function () {
                         self._loadingImages.push(this);
                     });
                 });
+
+                if (response.length < limit) {
+                    self.debug('No more images to load');
+                    self._requiredOffset = -1;
+                    self._loadButton.remove();
+                    return;
+                }
+
 
                 self._offset += response.length;
                 self._watchdogInterval = setInterval(function () {
