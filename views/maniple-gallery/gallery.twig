@@ -183,9 +183,9 @@ var Gallery = (function () {
 
         if (self._loadButton) {
             if (self._loading) {
-                self._loadButton.addClass('disabled loading').find('.message').text('Wczytuję...');
+                self._loadButton.addClass('disabled loading').find('.message').text('Loading...');
             } else {
-                self._loadButton.removeClass('disabled loading').find('.message').text('Więcej zdjęć...');
+                self._loadButton.removeClass('disabled loading').find('.message').text('More pictures...');
             }
         }
     };
@@ -232,7 +232,7 @@ var Gallery = (function () {
 
         $.ajax({
             type: 'get',
-            url:  this._urlTemplate.replace(/:offset/g, offset).replace(/:limit/g, limit).replace(/:dir_id/g, {{ gallery_dir_id }}),
+            url:  this._urlTemplate.replace(/:offset/g, offset).replace(/:limit/g, limit),
             success: function (response) {
                 if (!(response instanceof Array)) {
                     self.debug('Server response is not an array');
@@ -304,6 +304,6 @@ var Gallery = (function () {
 })();
 
 $(function () {
-    window.gallery = new Gallery('#gallery', '#gallery-view', '{{ urlTemplate('gallery.images') }}');
+    window.gallery = new Gallery('#gallery', '#gallery-view', '{{ urlTemplate('gallery.images')|replace({":dir_id": gallery_dir_id}) }}');
 });
 </script>

@@ -2,6 +2,11 @@
 
 class ManipleGallery_Bootstrap extends Maniple_Application_Module_Bootstrap
 {
+    public function getRoutesConfig()
+    {
+        return require dirname(__FILE__) . '/configs/routes.config.php';
+    }
+
     protected function _initView()
     {
         $bootstrap = $this->getApplication();

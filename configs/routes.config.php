@@ -3,9 +3,9 @@
     'gallery.images' => array(
         'route' => 'gallery/gallery-images/:dir_id',
         'defaults' => array(
-            'module'     => 'maniple-galery',
+            'module'     => 'maniple-gallery',
             'controller' => 'gallery',
-            'action'     => 'gallery-images',
+            'action'     => 'images',
         ),
     ),
 

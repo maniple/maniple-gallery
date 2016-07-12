@@ -2,16 +2,17 @@
 
 class ManipleGallery_GalleryController extends Maniple_Controller_Action
 {
-    public function galleryImagesAction()
+    public function imagesAction()
     {
-        $this->requireAuthentication();
-
         $this->_helper->viewRenderer->setNoRender();
-        $this->_helper->layout->disableLayout();
 
         /** @var ManipleDrive_DriveManager $driveManager */
         $driveManager = $this->getResource('drive.manager');
-        $dir = $driveManager->getDir((int) $this->getScalarParam('dir_id'));
+
+        $dir = $this->getParam('dir');
+        if (!$dir instanceof ManipleDrive_Entity_Dir) {
+            $dir = $driveManager->getDir((int) $this->getScalarParam('dir_id'));
+        }
 
         $result = array();
 
@@ -25,7 +26,7 @@ class ManipleGallery_GalleryController extends Maniple_Controller_Action
             }
             $offset = max(0, (int) $this->getScalarParam('offset'));
 
-            $table = $this->getResource('db')->getTableFactory()->getTable('ManipleDrive_Model_DbTable_Files');
+            $table = $this->getResource('ZeframDb')->getTableFactory()->getTable('ManipleDrive_Model_DbTable_Files');
             $files = $table->fetchAll($where, $order, $limit, $offset);
 
             $fileFields = array_flip(explode(' ',
